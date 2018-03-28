@@ -21,6 +21,6 @@
   @R2
   M=D              // M[2] = D (greatest number)
 
-(INFINITE_LOOP)
+(INFINITE_LOOP)    // possibly add in some indication when the loop ends, like all bars flash green
   @INFINITE_LOOP
   0;JMP            // infinite loop
