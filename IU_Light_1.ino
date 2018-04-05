@@ -48,6 +48,7 @@ LPD8806 spltMtoD = LPD8806(nLEDs, spltMtoD_data, clockPin);
 LPD8806 repBR = LPD8806(nLEDs, repBR_data, clockPin);
 
 int instructions[16][16];
+int instrIndex = 0;
 
 Encoder enc(34, 33);
                            
@@ -70,7 +71,7 @@ void setup()
       if(c == '\n')
         //move down a column
         y++;
-        //make sure we start at beginning of next instructiobn
+        //make sure we start at beginning of next instruction
         x = 0;
         //skip to next iteration of loop
         continue;
@@ -95,6 +96,22 @@ void loop()
 {
   setClockSpeed();
   // need to test the outputs of the rot and make a function to map to a delay.
+  //Once we've gone past the end of our instruction set, start over!
+  if(instrIndex == 16)
+    instrIndex == 0;
+  
+  //If it's an a-instruction
+  if(instruction[instrIndex][0] == 0)
+  {
+     //Do what a-instructions should do
+  }
+  //If it's a c-instruction
+  if(instruction[instrIndex][0] == 1)
+  {
+     //Do c-instruction stuff here
+  }
+  //After each loop we need to increment instrIndex so we can loop over the same instructions again
+  instrIndex++;
 }
 
 
