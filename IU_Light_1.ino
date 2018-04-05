@@ -100,7 +100,22 @@ void out_repTL(int num)
   repTL.show();
 }
 
-
+void out_repTR(int num)
+{
+  int i;
+  for(i = 0; i < nLEDs; i++)
+  {
+    if(bitRead(num, i) == 1)
+    {
+      repTR.setPixelColor(i, repTR.Color(127, 127, 127));
+    }
+    else
+    {
+      repTR.setPixelColor(i, 0);
+    }
+  }
+  repTR.show();
+}
 
 int binaryOut(int a, int b, int op)
 {
