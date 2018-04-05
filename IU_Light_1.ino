@@ -81,7 +81,39 @@ void spltMtoD_(int num)
   spltMtoD.show();
 }
 
+void spltBLtoA(int num)
+{
+  int i;
+  for(i = 0; i < nLEDs; i++)
+  {
+    if(bitRead(num, i) == 1)
+    {
+      spltBLtoA.setPixelColar(i, spltBLtoA.Color(127, 0, 0));
+    }
+    else
+    {
+      spltBLtoA.setPixelColor(i, 0);
+    }
+  }
+  spltBLtoA.show();
+}
 
+void spltBLtoMem(int num)
+{
+    int i;
+  for(i = 0; i < nLEDs; i++)
+  {
+    if(bitRead(num, i) == 1)
+    {
+      spltBLtoMem.setPixelColar(i, spltBLtoMem.Color(127, 0, 0));
+    }
+    else
+    {
+      spltBLtoMem.setPixelColor(i, 0);
+    }
+  }
+  spltBLtoMem.show();
+}
 
 void out_repTL(int num)
 {
