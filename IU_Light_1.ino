@@ -8,6 +8,7 @@
 #include <Adafruit_GFX.h>
 #include <SPI.h>
 #include <Encoder.h>
+#include <SD.h>
 
 int nLEDs = 16;
 int maxNum = pow(2, nLEDs);
@@ -46,11 +47,46 @@ LPD8806 spltBLtoA = LPD8806(nLEDs, spltBLtoA_data, clockPin);
 LPD8806 spltMtoD = LPD8806(nLEDs, spltMtoD_data, clockPin);
 LPD8806 repBR = LPD8806(nLEDs, repBR_data, clockPin);
 
-Encoder enc(34, 33);
+int instructions[16][16];
 
+Encoder enc(34, 33);
+                           
 void setup()
 {
   Serial.begin(9600);
+  //STEP 1: Get instructions from file. Gonna start by opening the file from the sd card
+  File myFile;
+  int x = 0, y = 0;
+  char c;
+  myFile = SD.open("instructions.txt");
+                           
+  if (myFile) {
+    Serial.println("instructions.txt:");
+    
+    // read from the file until there's nothing else in it:
+    while (myFile.available()) {
+    	c = myFile.read();
+      //if we hit a newline, move a column down in our instruction 2-D array
+      if(c == '\n')
+        //move down a column
+        y++;
+        //make sure we start at beginning of next instructiobn
+        x = 0;
+        //skip to next iteration of loop
+        continue;
+      //if we didn't hit newline, then read in char from the file's instruction, convert to int, and store in
+      //our instructions array
+      instructions[y][x] = (c-48);
+      x++;
+    }
+    // close the file:
+    myFile.close();
+  } else {
+  	// if the file didn't open, print an error:
+    Serial.println("error opening instructions.txt");
+  }
+  
+  //Now the file stuff is done
 }
 
 
@@ -149,6 +185,7 @@ void out_repTR(int num)
   repTR.show();
 }
 
+//Test function, not actually needed
 int binaryOut(int a, int b, int op)
 {
   switch (op)
@@ -168,6 +205,12 @@ int binaryOut(int a, int b, int op)
   }
 }
 
+//Sends an unsigned int representing a 16-bit binary instruction to the program counter. Takes in
+//outputs zr and ng from ALU which tell whether or not to set jump 1, 2, 3
+unsigned int jumpLogicOut(int zrALU, int ngALU)
+{
+   
+}
 
 // This needs to be ported
 
