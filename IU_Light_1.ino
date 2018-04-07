@@ -47,6 +47,9 @@ LPD8806 spltBLtoA = LPD8806(nLEDs, spltBLtoA_data, clockPin);
 LPD8806 spltMtoD = LPD8806(nLEDs, spltMtoD_data, clockPin);
 LPD8806 repBR = LPD8806(nLEDs, repBR_data, clockPin);
 
+//Very important note! Most significant bit of instruction is stored in index 0 of instruction
+//Example: Most significant bit of instruction number 0 (the first one in the file so it's index 0) 
+//is stored at instructions[0][0], and least significant bit is stored at instruction[0][15]
 int instructions[16][16];
 int instrIndex = 0;
 
@@ -190,11 +193,22 @@ int binaryOut(int a, int b, int op)
   }
 }
 
-//Sends an unsigned int representing a 16-bit binary instruction to the program counter. Takes in
-//outputs zr and ng from ALU which tell whether or not to set jump 1, 2, 3
-unsigned int jumpLogicOut(int zrALU, int ngALU)
+//Takes in 3 least significant bits of our instruction (which control jump) and if any are true
+//Then we turn on all the jump logic LED's
+unsigned int jumpLogicOut(int instruction[16])
 {
-   
+   //If we're going to make some kind of jump, light up all of the 16 leds attached to jump logic
+   if(instruction[15] == 1 || instruction[14] == 1 || instruction[13] == 1)
+   {
+      for(i = 0; i < nLEDs; i++)
+      {
+         jl.setPixelColor(i, jl.Color(255, 0, 0));
+         
+      }
+      jl.show();
+   }
+   else
+      jl.setPixelColor(i, jl.Color(0,0,0));
 }
 
 // This needs to be ported
