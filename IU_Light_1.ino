@@ -31,6 +31,9 @@ int spltBLtoA_data = 22;
 int spltMtoD_data = 21;
 int repBR_data = 20;
 
+//Made this one 31 for now, don't know it's actual value so it's going to need to be set!!!
+int ARegtoPC = 31;
+
 LPD8806 repTL = LPD8806(nLEDs, repTL_data, clockPin);
 LPD8806 spltMtoRTR = LPD8806(nLEDs, spltMtoRTR_data, clockPin);
 LPD8806 repTR = LPD8806(nLEDs, repTR_data, clockPin);
@@ -46,12 +49,21 @@ LPD8806 ARegtoMem = LPD8806(nLEDs, ARegtoMem_data, clockPin);
 LPD8806 spltBLtoA = LPD8806(nLEDs, spltBLtoA_data, clockPin);
 LPD8806 spltMtoD = LPD8806(nLEDs, spltMtoD_data, clockPin);
 LPD8806 repBR = LPD8806(nLEDs, repBR_data, clockPin);
+//THIS NEEDS INITIALIZATION, I DON'T KNOW THE LED/PIN NUMBER FOR IT
+LPD8806 ARegtoPC = LPD8806(nLEDs, ARegtoPC, clockPin);
 
 //Very important note! Most significant bit of instruction is stored in index 0 of instruction
 //Example: Most significant bit of instruction number 0 (the first one in the file so it's index 0) 
 //is stored at instructions[0][0], and least significant bit is stored at instruction[0][15]
 int instructions[16][16];
 int instrIndex = 0;
+
+//Think we need some kind of memory array, not certain though. Gonna make it 64 values long for now
+int memory[64][16];
+
+//Think we need arrays to hold values of A and D registers as well
+int DReg[16];
+int AReg[15];
 
 Encoder enc(34, 33);
                            
@@ -97,19 +109,23 @@ void setup()
 
 void loop()
 {
+  int i;
   setClockSpeed();
   // need to test the outputs of the rot and make a function to map to a delay.
   //Once we've gone past the end of our instruction set, start over!
   if(instrIndex == 16)
     instrIndex == 0;
   
-  //If it's an a-instruction
-  if(instruction[instrIndex][0] == 0)
+  //If it's an a-instruction load the A register
+  if(instructions[instrIndex][0] == 0)
   {
-     //Do what a-instructions should do
+     for(i = 1; i < 16; i++)
+     {
+        AReg[i] = instructions[instrIndex][i];
+     }
   }
   //If it's a c-instruction
-  if(instruction[instrIndex][0] == 1)
+  if(instructions[instrIndex][0] == 1)
   {
      //Do c-instruction stuff here
   }
@@ -118,14 +134,15 @@ void loop()
 }
 
 
-
-void spltMtoD_(int num)
+//We're gonna need to check on this to make sure the order of the instruction in here matches
+//The actual binary number that is going to get displayed on IU light from this
+void spltMtoD_(int instruction[16])
 {
   int i;
   // create some kind of logic to decide between repTR or Dreg
   for(i = 0; i < nLEDs; i++)
   {
-    if(bitRead(num, i) == 1)
+    if(instruction[i] == 1)
     {
       spltMtoD.setPixelColor(i, spltMtoD.Color(127, 0, 0));
     }
@@ -173,6 +190,33 @@ void out_repTR(int num)
   repTR.show();
 }
 
+void out_AReg(int ainstr[16])
+{
+  int i;
+  
+  ARegtoMux.setPixelColor(0, 0);
+  ARegtoMem.setPixelColor(0, 0);
+  ARegtoPC.setPixelColor(0,0);
+  for(i = 1; i < nLEDs; i++)
+  {
+    if(ainstr[i] == 1)
+    {
+      ARegtoMux.setPixelColor(i, ARegtoMux.Color(255, 0, 0));
+      ARegtoMem.setPixelColor(i, ARegtoMem.Color(255, 0, 0));
+      ARegtoPC.setPixelColor(i, ARegtoPC.Color(255, 0, 0));
+    }
+    else
+    {
+      ARegtoMux.setPixelColor(i, 0);
+      ARegtoMem.setPixelColor(i, 0);
+      ARegtoPC.setPixelColor(i,0);
+    }
+  }
+  ARegtoMux.show();
+  ARegtoMem.show();
+  ARegtoPC.show();
+}
+
 //Test function, not actually needed
 int binaryOut(int a, int b, int op)
 {
@@ -205,10 +249,11 @@ unsigned int jumpLogicOut(int instruction[16])
          jl.setPixelColor(i, jl.Color(255, 0, 0));
          
       }
-      jl.show();
    }
    else
       jl.setPixelColor(i, jl.Color(0,0,0));
+  
+  jl.show();
 }
 
 // This needs to be ported
