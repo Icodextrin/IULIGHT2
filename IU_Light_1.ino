@@ -105,6 +105,11 @@ void setup()
   }
   
   //Now the file stuff is done
+  x = 0;
+  for(x; x < nLEDs; x++)
+  {
+     
+  }
 }
 
 
