@@ -386,7 +386,7 @@ void spltBLtoA(int outALU[16], int instruction[16])
 
 //Takes in 3 least significant bits of our instruction (which control jump) and if any are true
 //Then we turn on all the jump logic LED's
-unsigned int jumpLogicOut(int instruction[16])
+void jumpLogicOut(int instruction[16])
 {
    //If we're going to make some kind of jump, light up all of the 16 leds attached to jump logic
    if(instruction[15] == 1 || instruction[14] == 1 || instruction[13] == 1)
@@ -401,6 +401,66 @@ unsigned int jumpLogicOut(int instruction[16])
       jl.setPixelColor(i, jl.Color(0,0,0));
   
   jl.show();
+}
+
+//This function sets the LEDs coming out from memory and into the multiplexer
+void outMem()
+{
+   int i, memLoc = 0;
+   //Find memory location to display. For now we only have a 64-bit memory, so we're going to limit where that
+   //destination can be accordingly
+   for(i = 0; i < 7; i++)
+   {
+      memLoc += (pow(2.0, i) * AReg[i]); 
+   }
+   for(i = 0; i < 16; i++)
+   {
+      if(memory[memLoc][i] == 1)
+      {
+         mem.setPixelColor(i, mem.Color(255, 0, 0));
+      }
+      else
+         mem.setPixelColor(i, 0);
+   }
+   mem.show();
+}
+
+//This function controls the LEDs coming out of the multiplexer and into the ALU
+void mux(instruction[16])
+{
+   int i;
+   //If 'a' mnemonic is 0, then output AReg value from mux into ALU
+   if(instruction[3] == 0)
+   {
+      for(i = 0; i < 15; i++)
+      {
+         if(AReg[i] == 1)
+         {
+            mux.setPixelColor(i, mux.Color(255, 0, 0));
+         }
+         else
+            mux.setPixelColor(i, 0);
+      }
+   }
+   //If 'a' mnemonic is 1, then output value from memory specified by address in AReg
+   if(instruction[3] == 1)
+   {
+      int memLoc = 0;
+      for(i = 0; i < 7; i++)
+      {
+         memLoc += (pow(2.0, i) * AReg[i]); 
+      }
+      for(i = 0; i < 16; i++)
+      {
+         if(memory[memLoc][i] == 1)
+         {
+            mux.setPixelColor(i, mux.Color(255, 0, 0));
+         }
+         else
+            mux.setPixelColor(i, 0);
+      }
+   }
+   mux.show();
 }
 
 void setClockSpeed()
