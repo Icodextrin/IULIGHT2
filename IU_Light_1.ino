@@ -1,4 +1,5 @@
-// This is the IU LIGHT 1.0 code.
+// This is the latest IU LIGHT code.
+#include <math.h>
 #include <StaticThreadController.h>
 #include <ThreadController.h>
 #include <Thread.h>
@@ -16,7 +17,7 @@ int clockPin = 23;
 long clockData = -999;
 
 int repTL_data = 2;
-int spltMtoRTR_data = 3;
+int spltMtoRTL_data = 3;
 int repTR_data = 4;
 int spltBLtoMem_data = 5;
 int ARegtoMux_data = 6;
@@ -31,8 +32,11 @@ int spltBLtoA_data = 22;
 int spltMtoD_data = 21;
 int repBR_data = 20;
 
+//Made this one 31 for now, don't know it's actual value so it's going to need to be set!!!
+int ARegtoPC = 31;
+
 LPD8806 repTL = LPD8806(nLEDs, repTL_data, clockPin);
-LPD8806 spltMtoRTR = LPD8806(nLEDs, spltMtoRTR_data, clockPin);
+LPD8806 spltMtoRTL = LPD8806(nLEDs, spltMtoRTR_data, clockPin);
 LPD8806 repTR = LPD8806(nLEDs, repTR_data, clockPin);
 LPD8806 spltBLtoMem = LPD8806(nLEDs, spltBLtoMem_data, clockPin);
 LPD8806 ARegtoMux = LPD8806(nLEDs, ARegtoMux_data, clockPin);
@@ -47,8 +51,21 @@ LPD8806 spltBLtoA = LPD8806(nLEDs, spltBLtoA_data, clockPin);
 LPD8806 spltMtoD = LPD8806(nLEDs, spltMtoD_data, clockPin);
 LPD8806 repBR = LPD8806(nLEDs, repBR_data, clockPin);
 
+//THIS NEEDS INITIALIZATION, I DON'T KNOW THE LED/PIN NUMBER FOR IT
+LPD8806 ARegtoPC = LPD8806(nLEDs, ARegtoPC, clockPin);
+
+//Very important note! Most significant bit of instruction is stored in index 0 of instruction
+//Example: Most significant bit of instruction number 0 (the first one in the file so it's index 0) 
+//is stored at instructions[0][0], and least significant bit is stored at instruction[0][15]
 int instructions[16][16];
 int instrIndex = 0;
+
+//Think we need some kind of memory array, not certain though. Gonna make it 64 values long for now
+int memory[64][16];
+
+//Think we need arrays to hold values of A and D registers as well
+int DReg[16];
+int AReg[15];
 
 Encoder enc(34, 33);
                            
@@ -94,19 +111,23 @@ void setup()
 
 void loop()
 {
+  int i;
   setClockSpeed();
   // need to test the outputs of the rot and make a function to map to a delay.
   //Once we've gone past the end of our instruction set, start over!
   if(instrIndex == 16)
     instrIndex == 0;
   
-  //If it's an a-instruction
-  if(instruction[instrIndex][0] == 0)
+  //If it's an a-instruction load the A register
+  if(instructions[instrIndex][0] == 0)
   {
-     //Do what a-instructions should do
+     for(i = 1; i < 16; i++)
+     {
+        AReg[i] = instructions[instrIndex][i];
+     }
   }
   //If it's a c-instruction
-  if(instruction[instrIndex][0] == 1)
+  if(instructions[instrIndex][0] == 1)
   {
      //Do c-instruction stuff here
   }
@@ -115,137 +136,272 @@ void loop()
 }
 
 
-
-void spltMtoD_(int num)
+//Controls output LEDs for top middle splitter. Goes to D if D is in the destination bits given in our instruction
+//Takes in same data as our top right repeater, and also takes in an instruction which will tell us whether or not
+//To send from splitter to D
+void spltMtoD(int outALU[16], int instruction[16])
 {
   int i;
-  // create some kind of logic to decide between repTR or Dreg
-  for(i = 0; i < nLEDs; i++)
+  if(instruction[11] == 1)
   {
-    if(bitRead(num, i) == 1)
-    {
-      spltMtoD.setPixelColor(i, spltMtoD.Color(127, 0, 0));
-    }
-    else
-    {
-      spltMtoD.setPixelColor(i, 0);
-    }
+     for(i = 0; i < nLEDs; i++)
+     {
+       if(outALU[i] == 1)
+       {
+         spltMtoD.setPixelColor(i, spltMtoD.Color(255, 0, 0));
+       }
+       else
+       {
+         spltMtoD.setPixelColor(i, 0);
+       }
+       
+       //If we pass our data to the DReg from this splitter, it means we want to load it into the DReg
+       DReg[i] = outALU[i];
+     }
+  }
+  else
+  {
+     for(i = 0; i < nLEDs; i++)
+     {
+        spltMtoD.setPixelColor(i, 0);
+     }
+     
   }
   spltMtoD.show();
 }
 
-void spltBLtoA(int num)
+//Controls output LEDs for top middle splitter. Goes to top left repeater if A or M are in the destination bits given 
+//in our instruction. Takes in same data as our top right repeater, and also takes in an instruction which 
+//will tell us whether or not to send from splitter to top left repeater
+void spltMtoRTL(int outALU[16], int instruction[16])
 {
   int i;
-  for(i = 0; i < nLEDs; i++)
+  if(instruction[10] == 1 || instruction[12] == 1)
   {
-    if(bitRead(num, i) == 1)
-    {
-      spltBLtoA.setPixelColar(i, spltBLtoA.Color(127, 0, 0));
-    }
-    else
-    {
-      spltBLtoA.setPixelColor(i, 0);
-    }
+     for(i = 0; i < nLEDs; i++)
+     {
+       if(outALU[i] == 1)
+       {
+         spltMtoRTL.setPixelColor(i, spltMtoRTL.Color(255, 0, 0));
+       }
+       else
+       {
+         spltMtoRTL.setPixelColor(i, 0);
+       }
+     }
   }
-  spltBLtoA.show();
+  else
+  {
+     for(i = 0; i < nLEDs; i++)
+     {
+        spltMtoRTL.setPixelColor(i, 0);
+     }
+     
+  }
+  spltMtoRTL.show();
 }
 
-void spltBLtoMem(int num)
+//Still working with same data as our other repeaters and top middle splitter, so we'll pass in the same thing
+void out_repTL(int outALU[16])
 {
-    int i;
-  for(i = 0; i < nLEDs; i++)
+  int i;
+   for(i = 0; i < 16; i++)
+   {
+      if(outALU[i] == 1)
+      {
+         repTL.setPixelColor(i, repTL.Color(255, 0, 0));
+      }
+     else
+     {
+        repTL.setPixelColor(i, 0);
+     }
+   }
+   repTL.show();
+}
+
+void out_AReg(int ainstr[16])
+{
+  int i;
+  
+  ARegtoMux.setPixelColor(0, 0);
+  ARegtoMem.setPixelColor(0, 0);
+  ARegtoPC.setPixelColor(0,0);
+  for(i = 1; i < nLEDs; i++)
   {
-    if(bitRead(num, i) == 1)
+    if(ainstr[i] == 1)
     {
-      spltBLtoMem.setPixelColar(i, spltBLtoMem.Color(127, 0, 0));
+      ARegtoMux.setPixelColor(i, ARegtoMux.Color(255, 0, 0));
+      ARegtoMem.setPixelColor(i, ARegtoMem.Color(255, 0, 0));
+      ARegtoPC.setPixelColor(i, ARegtoPC.Color(255, 0, 0));
     }
     else
     {
-      spltBLtoMem.setPixelColor(i, 0);
+      ARegtoMux.setPixelColor(i, 0);
+      ARegtoMem.setPixelColor(i, 0);
+      ARegtoPC.setPixelColor(i,0);
     }
+  }
+  ARegtoMux.show();
+  ARegtoMem.show();
+  ARegtoPC.show();
+}
+
+void out_DReg()
+{
+   int i;
+   for(i = 0; i < 15; i++)
+   {
+      if(DReg[i] == 1)
+      {
+         DReg.setPixelColor(i, DReg.Color(255, 0, 0));
+      }
+     else
+     {
+        DReg.setPixelColor(i, 0);
+     }
+   }
+   DReg.show();
+}
+
+//Repeaters just spit back out whatever is put in
+void out_repBR(int outALU[16])
+{
+   int i;
+   for(i = 0; i < 16; i++)
+   {
+      if(outALU[i] == 1)
+      {
+         repBR.setPixelColor(i, repBR.Color(255, 0, 0));
+      }
+     else
+     {
+        repBR.setPixelColor(i, 0);
+     }
+   }
+   repBR.show();
+}
+
+//Same as above but just with top right repeater. Even has the same data as the bottom right
+//so we'll give it the same input
+void out_repTR(int outALU[16])
+{
+   int i;
+   for(i = 0; i < 16; i++)
+   {
+      if(outALU[i] == 1)
+      {
+         repTR.setPixelColor(i, repTR.Color(255, 0, 0));
+      }
+     else
+     {
+        repTR.setPixelColor(i, 0);
+     }
+   }
+   repTR.show();
+}
+
+//Decides whether or not to send data to memory from bottom left splitter. Still working with same ALU output data,
+//so we'll have the same input as our other repeaters and splitter. We'll see if M is in the destination
+//of our instruction, and that will decide whether or not to send data to memory
+void spltBLtoMem(int outALU[16], int instruction[16])
+{
+  int i, j, memLoc = 0;
+  if(instruction[12] == 1)
+  {
+     //If we're sending data from this splitter to memory, we want to load the memory location specified
+     //by our A-Register with the value from our outALU
+       
+     //Step 1, find destination. For now we only have a 64-bit memory, so we're going to limit where that
+     //destination can be accordingly
+     for(j = 0; j < 7; j++)
+     {
+        memLoc += (pow(2.0, j) * AReg[j]); 
+     }
+     
+     //Now as we loop through our outALU array to set our LEDs we can set our memory at the specified location
+     for(i = 0; i < nLEDs; i++)
+     {
+       if(outALU[i] == 1)
+       {
+         spltBLtoMem.setPixelColor(i, spltBLtoMem.Color(255, 0, 0));
+       }//close if
+       else
+       {
+         spltBLtoMem.setPixelColor(i, 0);
+       }//close else
+       //Since we're using an address from our AReg we want to show that the memory is receiving that data
+       //so we're going to light up the ARegtoMem LEDs here.
+       if(AReg[i] == 1)
+       {
+          ARegtoMem.setPixelColor(i, ARegtoMem.Color(255, 0, 0));
+       }
+       else
+          ARegtoMem.setPixelColor(i, 0);
+       //Step 2: Set memory values to outALU values
+       memory[memLoc][i] = outALU[i];
+     }//close for
+  }//close if
+  else
+  {
+     for(i = 0; i < nLEDs; i++)
+     {
+        spltBLtoMem.setPixelColor(i, 0);
+     }
+     
   }
   spltBLtoMem.show();
 }
 
-void out_repTL(int num)
+//Decides whether or not to send data from bottom left splitter to AReg. If it it sent, the values of AReg are overwritten
+//Still using same ALU output as several other functions.
+void spltBLtoA(int outALU[16], int instruction[16])
 {
   int i;
-  for(i = 0; i < nLEDs; i++)
+  if(instruction[10] == 1)
   {
-    if(bitRead(num, i) == 1)
-    {
-      repTL.setPixelColor(i, repTL.Color(127, 127, 127));
-    }
-    else
-    {
-      repTL.setPixelColor(i, 0);
-    }
+     for(i = 0; i < nLEDs; i++)
+     {
+       if(outALU[i] == 1)
+       {
+         spltBLtoA.setPixelColor(i, spltBLtoA.Color(255, 0, 0));
+       }
+       else
+       {
+         spltBLtoA.setPixelColor(i, 0);
+       }
+       //Set AReg values to outALU values if data is sent from splitter to AReg
+       AReg[i] = outALU[i];
+     }
   }
-  repTL.show();
-}
-
-void out_repTR(int num)
-{
-  int i;
-  for(i = 0; i < nLEDs; i++)
+  else
   {
-    if(bitRead(num, i) == 1)
-    {
-      repTR.setPixelColor(i, repTR.Color(127, 127, 127));
-    }
-    else
-    {
-      repTR.setPixelColor(i, 0);
-    }
+     for(i = 0; i < nLEDs; i++)
+     {
+        spltBLtoA.setPixelColor(i, 0);
+     }
+     
   }
-  repTR.show();
+  spltBLtoA.show();
 }
 
-//Test function, not actually needed
-int binaryOut(int a, int b, int op)
+//Takes in 3 least significant bits of our instruction (which control jump) and if any are true
+//Then we turn on all the jump logic LED's
+unsigned int jumpLogicOut(int instruction[16])
 {
-  switch (op)
-  {
-    case 0:
-      return a + b;
-      break;
-    case 1:
-      return a - b;
-      break;
-    case 2:
-      return a * b;
-      break;
-    case 3:
-      return a / b;
-      break;
-  }
+   //If we're going to make some kind of jump, light up all of the 16 leds attached to jump logic
+   if(instruction[15] == 1 || instruction[14] == 1 || instruction[13] == 1)
+   {
+      for(i = 0; i < nLEDs; i++)
+      {
+         jl.setPixelColor(i, jl.Color(255, 0, 0));
+         
+      }
+   }
+   else
+      jl.setPixelColor(i, jl.Color(0,0,0));
+  
+  jl.show();
 }
-
-//Sends an unsigned int representing a 16-bit binary instruction to the program counter. Takes in
-//outputs zr and ng from ALU which tell whether or not to set jump 1, 2, 3
-unsigned int jumpLogicOut(int zrALU, int ngALU)
-{
-   
-}
-
-// This needs to be ported
-
-//uint16_t registerD(uint16_t registerIn, int registerLoad){
-//  uint16_t registerOut;
-//  if(registerLoad == true) 
-//  {
-//    registerOut = registerIn;
-//    previousRegisterValue = registerIn;
-//  }
-//  else 
-//  {
-//    registerOut = previousRegisterValue;
-//  }
-//  return registerOut;
-//}
-
-
 
 void setClockSpeed()
 {
@@ -260,53 +416,3 @@ void setClockSpeed()
   }
   Serial.print(clockData);
 }
-
-// still needs to be ported
-//uint16_t registerA(uint16_t registerALUIn, int registerLoad, uint16_t registerROMin){
-//  uint16_t registerOut;
-//  
-//  int yep = 0xE000 == (0xE000 & registerROMIn); //left-shift the value
-//  uint16_t yup = first_three_bits == (registerROMIn & first_three_bits);
-//  if(yep == 1) 
-//  { //if the first three digits of the rom are 111
-//    registerOut = registerROMIn; //set the registerOut and previousRegisterValue to equal RegisterROMIn
-//    previousRegisterValue = registerROMIn;
-//  }
-//  else if(registerLoad == true) 
-//  { //if the registerLoad value is true
-//    registerOut = registerALUIn; //set registerOut and previousRegisterValue to equal RegisterALUIn
-//    previousRegisterValue = registerALUIn;
-//  }
-//  else 
-//  {
-//    registerOut = previousRegisterValue; //otherwise, the previousRegisterValue does not change
-//  }
-//  return registerOut;
-//}
-
-
-// unfinished and needs to be ported
-//uint16_t ALU(uint16_t a, uint16_t b, int computeBits[6]){
-//  
-//  
-//  int aluComputeBits[18] = {0b101010, 0b111111,
-//                            0b111010, 0b001100,
-//                            0b110000, 0b001101,
-//                            0b110001, 0b001111,
-//                            0b110011, 0b011111,
-//                            0b110111, 0b001110,
-//                            0b110010, 0b000010,
-//                            0b010011, 0b000111,
-//                            0b000000, 0b010101};
-//
-//  int computeBitInt = arrayToInt(computeBits);
-//  int aluComputeOut[18] = {0 , 1, -1, a, b, ~a, ~b, -a, -b, a+1, b+1, a-1, b-1, a+b, a-b, b-a, a&b, a|b};
-//
-//  for(int i = 0; i<18; i++)
-//  {
-//    if(aluComputeBits[i] == computeBitInt)
-//    {
-//      return aluComputeOut[i];
-//    }  
-//  }
-//}
