@@ -16,7 +16,7 @@ int clockPin = 23;
 long clockData = -999;
 
 int repTL_data = 2;
-int spltMtoRTR_data = 3;
+int spltMtoRTL_data = 3;
 int repTR_data = 4;
 int spltBLtoMem_data = 5;
 int ARegtoMux_data = 6;
@@ -35,7 +35,7 @@ int repBR_data = 20;
 int ARegtoPC = 31;
 
 LPD8806 repTL = LPD8806(nLEDs, repTL_data, clockPin);
-LPD8806 spltMtoRTR = LPD8806(nLEDs, spltMtoRTR_data, clockPin);
+LPD8806 spltMtoRTL = LPD8806(nLEDs, spltMtoRTR_data, clockPin);
 LPD8806 repTR = LPD8806(nLEDs, repTR_data, clockPin);
 LPD8806 spltBLtoMem = LPD8806(nLEDs, spltBLtoMem_data, clockPin);
 LPD8806 ARegtoMux = LPD8806(nLEDs, ARegtoMux_data, clockPin);
@@ -49,6 +49,7 @@ LPD8806 ARegtoMem = LPD8806(nLEDs, ARegtoMem_data, clockPin);
 LPD8806 spltBLtoA = LPD8806(nLEDs, spltBLtoA_data, clockPin);
 LPD8806 spltMtoD = LPD8806(nLEDs, spltMtoD_data, clockPin);
 LPD8806 repBR = LPD8806(nLEDs, repBR_data, clockPin);
+
 //THIS NEEDS INITIALIZATION, I DON'T KNOW THE LED/PIN NUMBER FOR IT
 LPD8806 ARegtoPC = LPD8806(nLEDs, ARegtoPC, clockPin);
 
@@ -134,26 +135,67 @@ void loop()
 }
 
 
-//We're gonna need to check on this to make sure the order of the instruction in here matches
-//The actual binary number that is going to get displayed on IU light from this
-void spltMtoD_(int instruction[16])
+//Controls output LEDs for top middle splitter. Goes to D if D is in the destination bits given in our instruction
+//Takes in same data as our top right repeater, and also takes in an instruction which will tell us whether or not
+//To send from splitter to D
+void spltMtoD(int outALU[16], int instruction[16])
 {
   int i;
-  // create some kind of logic to decide between repTR or Dreg
-  for(i = 0; i < nLEDs; i++)
+  if(instruction[11] == 1)
   {
-    if(instruction[i] == 1)
-    {
-      spltMtoD.setPixelColor(i, spltMtoD.Color(127, 0, 0));
-    }
-    else
-    {
-      spltMtoD.setPixelColor(i, 0);
-    }
+     for(i = 0; i < nLEDs; i++)
+     {
+       if(outALU[i] == 1)
+       {
+         spltMtoD.setPixelColor(i, spltMtoD.Color(255, 0, 0));
+       }
+       else
+       {
+         spltMtoD.setPixelColor(i, 0);
+       }
+     }
+  }
+  else
+  {
+     for(i = 0; i < nLEDs; i++)
+     {
+        spltMtoD.setPixelColor(i, 0);
+     }
+     
   }
   spltMtoD.show();
 }
 
+//Controls output LEDs for top middle splitter. Goes to top left repeater if A or M are in the destination bits given 
+//in our instruction. Takes in same data as our top right repeater, and also takes in an instruction which 
+//will tell us whether or not to send from splitter to top left repeater
+void spltMtoRTL(int outALU[16], int instruction[16])
+{
+  int i;
+  if(instruction[10] == 1 || instruction[12] == 1)
+  {
+     for(i = 0; i < nLEDs; i++)
+     {
+       if(outALU[i] == 1)
+       {
+         spltMtoRTL.setPixelColor(i, spltMtoRTL.Color(255, 0, 0));
+       }
+       else
+       {
+         spltMtoRTL.setPixelColor(i, 0);
+       }
+     }
+  }
+  else
+  {
+     for(i = 0; i < nLEDs; i++)
+     {
+        spltMtoRTL.setPixelColor(i, 0);
+     }
+     
+  }
+  spltMtoRTL.show();
+}
 
 
 void out_repTL(int num)
@@ -171,23 +213,6 @@ void out_repTL(int num)
     }
   }
   repTL.show();
-}
-
-void out_repTR(int num)
-{
-  int i;
-  for(i = 0; i < nLEDs; i++)
-  {
-    if(bitRead(num, i) == 1)
-    {
-      repTR.setPixelColor(i, repTR.Color(127, 127, 127));
-    }
-    else
-    {
-      repTR.setPixelColor(i, 0);
-    }
-  }
-  repTR.show();
 }
 
 void out_AReg(int ainstr[16])
@@ -215,6 +240,60 @@ void out_AReg(int ainstr[16])
   ARegtoMux.show();
   ARegtoMem.show();
   ARegtoPC.show();
+}
+
+void out_DReg()
+{
+   int i;
+   for(i = 0; i < 15; i++)
+   {
+      if(DReg[i] == 1)
+      {
+         DReg.setPixelColor(i, DReg.Color(255, 0, 0));
+      }
+     else
+     {
+        DReg.setPixelColor(i, 0);
+     }
+   }
+   DReg.show();
+}
+
+//Repeaters just spit back out whatever is put in
+void out_repBR(int outALU[16])
+{
+   int i;
+   for(i = 0; i < 16; i++)
+   {
+      if(outALU[i] == 1)
+      {
+         repBR.setPixelColor(i, repBR.Color(255, 0, 0));
+      }
+     else
+     {
+        repBR.setPixelColor(i, 0);
+     }
+   }
+   repBR.show();
+}
+
+//Same as above but just with top right repeater. Even has the same data as the bottom right
+//so we'll give it the same input
+void out_repTR(int outALU[16])
+{
+   int i;
+   for(i = 0; i < 16; i++)
+   {
+      if(outALU[i] == 1)
+      {
+         repTR.setPixelColor(i, repTR.Color(255, 0, 0));
+      }
+     else
+     {
+        repTR.setPixelColor(i, 0);
+     }
+   }
+   repTR.show();
 }
 
 //Test function, not actually needed
