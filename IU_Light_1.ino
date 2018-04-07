@@ -352,6 +352,38 @@ void spltBLtoMem(int outALU[16], int instruction[16])
   spltBLtoMem.show();
 }
 
+//Decides whether or not to send data from bottom left splitter to AReg. If it it sent, the values of AReg are overwritten
+//Still using same ALU output as several other functions.
+void spltBLtoA(int outALU[16], int instruction[16])
+{
+  int i;
+  if(instruction[10] == 1)
+  {
+     for(i = 0; i < nLEDs; i++)
+     {
+       if(outALU[i] == 1)
+       {
+         spltBLtoA.setPixelColor(i, spltBLtoA.Color(255, 0, 0));
+       }
+       else
+       {
+         spltBLtoA.setPixelColor(i, 0);
+       }
+       //Set AReg values to outALU values if data is sent from splitter to AReg
+       AReg[i] = outALU[i];
+     }
+  }
+  else
+  {
+     for(i = 0; i < nLEDs; i++)
+     {
+        spltBLtoA.setPixelColor(i, 0);
+     }
+     
+  }
+  spltBLtoA.show();
+}
+
 //Takes in 3 least significant bits of our instruction (which control jump) and if any are true
 //Then we turn on all the jump logic LED's
 unsigned int jumpLogicOut(int instruction[16])
