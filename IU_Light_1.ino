@@ -48,22 +48,22 @@ LPD8806 repBR = LPD8806(nLEDs, repBR_data, clockPin);
 //Very important note! Most significant bit of instruction is stored in index 0 of instruction
 //Example: Most significant bit of instruction number 0 (the first one in the file so it's index 0) 
 //is stored at instructions[0][0], and least significant bit is stored at instruction[0][15]
-int instructions[16][16] = {{1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1} ,
-                            {1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1},
-                            {1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1},
-                            {1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1},
-                            {1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1},
-                            {1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1},
-                            {1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1},
-                            {1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1},
-                            {1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1},
-                            {1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1},
-                            {1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1},
-                            {1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1},
-                            {1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1},
-                            {1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1},
-                            {1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1},
-                            {1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1}};
+int instructions[16][16] = {{0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+                            {1,1,1,0,1,1,0,0,0,0,0,0,0,1,1,1},
+                            {1,1,1,0,1,1,0,0,0,0,0,0,0,1,1,1},
+                            {1,1,1,0,1,1,0,0,0,0,0,0,0,1,1,1},
+                            {1,1,1,0,1,1,0,0,0,0,0,0,0,1,1,1},
+                            {1,1,1,0,1,1,0,0,0,0,0,0,0,1,1,1},
+                            {1,1,1,0,1,1,0,0,0,0,0,0,0,1,1,1},
+                            {1,1,1,0,1,1,0,0,0,0,0,0,0,1,1,1},
+                            {1,1,1,0,1,1,0,0,0,0,0,0,0,1,1,1},
+                            {1,1,1,0,1,1,0,0,0,0,0,0,0,1,1,1},
+                            {1,1,1,0,1,1,0,0,0,0,0,0,0,1,1,1},
+                            {1,1,1,0,1,1,0,0,0,0,0,0,0,1,1,1},
+                            {1,1,1,0,1,1,0,0,0,0,0,0,0,1,1,1},
+                            {1,1,1,0,1,1,0,0,0,0,0,0,0,1,1,1},
+                            {1,1,1,0,1,1,0,0,0,0,0,0,0,1,1,1},
+                            {1,1,1,0,1,1,0,0,0,0,0,0,0,1,1,1}};
 
 
                             /*Max.hack
@@ -95,7 +95,7 @@ int DReg_val[16];
 int AReg_val[16];
 
 //Going to create a global variable for this instead of dealing with malloc/free later
-int outALU[16];
+int outALU[16] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
 
 //Encoder enc(34, 33);
                            
@@ -141,7 +141,7 @@ void setup()
 
 void loop()
 {
-  int i;
+  int i, mem;
   //setClockSpeed();
   // need to test the outputs of the rot and make a function to map to a delay.
   //Once we've gone past the end of our instruction set, start over!
@@ -154,23 +154,31 @@ void loop()
      AReg_val[0] = 0;
      for(i = 1; i < 16; i++)
      {
-        // AReg[i] = instructions[instrIndex][i]; // AReg not in scope, did you mean AReg_value?
         AReg_val[i] = instructions[instrIndex][i];
         delay(1000);
      }
+     out_AReg(AReg_val);
   }
   //If it's a c-instruction
   if(instructions[instrIndex][0] == 1)
   {
+     jumpLogicOut(instructions[instrIndex]);
+     delay(500);
+     outMem();
+     delay(500);
+     mem = mux_(instructions[instrIndex]);
+     delay(500);
+     ALU_out(mem, instructions[instrIndex]);
+     delay(500);
      spltMtoD_(instructions[instrIndex]);
      delay(500);
      spltMtoRTL_(instructions[instrIndex]);
      delay(500);
-     out_repTL();
+     out_repTL(instructions[instrIndex]);
      delay(500);
-     out_AReg(AReg_val);
+     //out_AReg(AReg_val);
      delay(500);
-     out_DReg();
+     //out_DReg();
      delay(500);
      out_repBR();
      delay(500);
@@ -180,12 +188,7 @@ void loop()
      delay(500);
      spltBLtoA_(instructions[instrIndex]);
      delay(500);
-     jumpLogicOut(instructions[instrIndex]);
-     delay(500);
-     outMem();
-     delay(500);
-     ALU_out(mux_(instructions[instrIndex]), instructions[instrIndex]);
-     delay(500);
+     
      
   }
   //After each loop we need to increment instrIndex so we can loop over the same instructions again
@@ -325,21 +328,32 @@ void spltMtoRTL_(int instruction[16])
 }
 
 //Still working with same data as our other repeaters and top middle splitter, so we'll pass in the same thing
-void out_repTL()
+void out_repTL(int binstruction[16])
 {
   int i;
-   for(i = 0; i < 16; i++)
-   {
-      if(outALU[i] == 1)
-      {
+  if(instruction[10] == 1 || instruction[12] == 1)
+  {
+     for(i = 0; i < nLEDs; i++)
+     {
+       if(outALU[i] == 1)
+       {
          repTL.setPixelColor(i, repTL.Color(255, 0, 0));
-      }
-     else
+       }
+       else
+       {
+         repTL.setPixelColor(i, 0);
+       }
+     }
+  }
+  else
+  {
+     for(i = 0; i < nLEDs; i++)
      {
         repTL.setPixelColor(i, 0);
      }
-   }
-   repTL.show();
+     
+  }
+  repTL.show();
 }
 
 void out_AReg(int ainstr[16])
