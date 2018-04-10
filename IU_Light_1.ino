@@ -840,14 +840,14 @@ void ALU_out(int M, int instruction[16])
    {
        if(outALU[i] == 1)
        {
-         alu_data.setPixelColor(i, alu_data.Color(255, 0, 0));
+         alu.setPixelColor(i, alu.Color(255, 0, 0));
        }
        else
        {
-         alu_data.setPixelColor(i, 0);
+         alu.setPixelColor(i, 0);
        }
    }
-   alu_data.show();
+   alu.show();
 }
 
 void setClockSpeed()
