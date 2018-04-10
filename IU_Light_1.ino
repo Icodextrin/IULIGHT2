@@ -24,7 +24,7 @@ int pc_data = 9;
 int mux_data = 10;
 int DReg_data = 29;
 int alu_data = 30;
-int ARegtoMem_data = 23;
+int ARegtoMem_data = 14;
 int spltBLtoA_data = 22;
 int spltMtoD_data = 21;
 int repBR_data = 20;
@@ -48,7 +48,42 @@ LPD8806 repBR = LPD8806(nLEDs, repBR_data, clockPin);
 //Very important note! Most significant bit of instruction is stored in index 0 of instruction
 //Example: Most significant bit of instruction number 0 (the first one in the file so it's index 0) 
 //is stored at instructions[0][0], and least significant bit is stored at instruction[0][15]
-int instructions[16][16];
+int instructions[16][16] = {{1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1} ,
+                            {1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1},
+                            {1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1},
+                            {1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1},
+                            {1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1},
+                            {1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1},
+                            {1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1},
+                            {1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1},
+                            {1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1},
+                            {1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1},
+                            {1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1},
+                            {1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1},
+                            {1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1},
+                            {1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1},
+                            {1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1},
+                            {1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1}};
+
+
+                            /*Max.hack
+                            {{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0} ,
+                            {1,1,1,1,1,1,0,0,0,0,0,1,0,0,0,0} ,
+                            {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1} ,
+                            {1,1,1,1,0,1,0,0,1,1,0,1,0,0,0,0} ,
+                            {0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0} ,
+                            {1,1,1,0,0,0,1,1,0,0,0,0,0,0,0,1} ,
+                            {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1} ,
+                            {1,1,1,1,1,1,0,0,0,0,0,1,0,0,0,0} ,
+                            {0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0} ,
+                            {1,1,1,0,1,0,1,0,1,0,0,0,0,1,1,1} ,
+                            {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0} ,
+                            {1,1,1,1,1,1,0,0,0,0,0,1,0,0,0,0} ,
+                            {0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0} ,
+                            {1,1,1,0,0,0,1,1,0,0,0,0,1,0,0,0} ,
+                            {0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0} ,
+                            {1,1,1,0,1,0,1,0,1,0,0,0,0,1,1,1}};*/
+                            
 int instrIndex = 0;
 
 //Think we need some kind of memory array, not certain though. Gonna make it 64 values long for now
@@ -62,13 +97,15 @@ int AReg_val[16];
 //Going to create a global variable for this instead of dealing with malloc/free later
 int outALU[16];
 
-Encoder enc(34, 33);
+//Encoder enc(34, 33);
                            
 void setup()
 {
   Serial.begin(9600);
+  initLED();
+  clearAll();
   //STEP 1: Get instructions from file. Gonna start by opening the file from the sd card
-  File myFile;
+  /*File myFile;
   int x = 0, y = 0;
   char c;
   myFile = SD.open("instructions.txt");
@@ -98,14 +135,14 @@ void setup()
     // if the file didn't open, print an error:
     Serial.println("error opening instructions.txt");
   }
-  
+  */
   //Now the file stuff is done
 }
 
 void loop()
 {
   int i;
-  setClockSpeed();
+  //setClockSpeed();
   // need to test the outputs of the rot and make a function to map to a delay.
   //Once we've gone past the end of our instruction set, start over!
   if(instrIndex == 16)
@@ -119,23 +156,36 @@ void loop()
      {
         // AReg[i] = instructions[instrIndex][i]; // AReg not in scope, did you mean AReg_value?
         AReg_val[i] = instructions[instrIndex][i];
+        delay(1000);
      }
   }
   //If it's a c-instruction
   if(instructions[instrIndex][0] == 1)
   {
      spltMtoD_(instructions[instrIndex]);
+     delay(500);
      spltMtoRTL_(instructions[instrIndex]);
+     delay(500);
      out_repTL();
+     delay(500);
      out_AReg(AReg_val);
+     delay(500);
      out_DReg();
+     delay(500);
      out_repBR();
+     delay(500);
      out_repTR();
+     delay(500);
      spltBLtoMem_(instructions[instrIndex]);
+     delay(500);
      spltBLtoA_(instructions[instrIndex]);
+     delay(500);
      jumpLogicOut(instructions[instrIndex]);
+     delay(500);
      outMem();
+     delay(500);
      ALU_out(mux_(instructions[instrIndex]), instructions[instrIndex]);
+     delay(500);
      
   }
   //After each loop we need to increment instrIndex so we can loop over the same instructions again
@@ -155,9 +205,10 @@ void negate16Bit(int *input)
 //Handles binary addition associated with increment (stuff like carrying)
 void inc16Bit(int *input)
 {
+   int i;
    if(input[15] == 0)
    {
-      intput[15] = 1;
+      input[15] = 1;
       return;
    }
    //If our least significant bit isn't a zero we have to do some binary addition
@@ -176,7 +227,7 @@ void inc16Bit(int *input)
          //If the current bit isn't a zero, flip it from 1 to zero and move on
          else
          {
-            intput[i] = 0;
+            input[i] = 0;
          }//close else
       }//close for
    }//close else
@@ -193,7 +244,7 @@ void twosComp16Bit(int *input)
 //Does bitwise addition of two binary numbers from int arrays
 void bitWiseAdd(int *out, int *in1, int *in2)
 {
-   i, c = 0;
+   int i, c = 0;
    for(i = 0; i < 16; i++)
    {
       out[i] = 0;
@@ -756,7 +807,8 @@ void ALU_out(int M, int instruction[16])
          {
             temp[i] = AReg_val[i];
          }
-         bitWiseAdd(outALU, DReg_val, twosComp16Bit(temp));
+         twosComp16Bit(temp);
+         bitWiseAdd(outALU, DReg_val, temp);
          
       }
       //If we want D-M
@@ -767,7 +819,8 @@ void ALU_out(int M, int instruction[16])
          {
             temp[i] = memory[M][i];
          }
-         bitWiseAdd(outALU, DReg_val, twosComp16Bit(temp));
+         twosComp16Bit(temp);
+         bitWiseAdd(outALU, DReg_val, temp);
          
       }
    }
@@ -783,12 +836,14 @@ void ALU_out(int M, int instruction[16])
       //If we want A-D
       if(!a)
       {
-         bitWiseAdd(outALU, AReg_val, twosComp16Bit(temp));
+         twosComp16Bit(temp);
+         bitWiseAdd(outALU, AReg_val, temp);
       }
       //If we want M-D
       if(a)
       {
-         bitWiseAdd(outALU, memory[M], twosComp16Bit(temp));
+         twosComp16Bit(temp);
+         bitWiseAdd(outALU, memory[M], temp);
       }
    }
    //If we want D&A or D&M
@@ -835,17 +890,17 @@ void ALU_out(int M, int instruction[16])
    {
        if(outALU[i] == 1)
        {
-         alu_data.setPixelColor(i, alu_data.Color(255, 0, 0));
+         alu.setPixelColor(i, alu.Color(255, 0, 0));
        }
        else
        {
-         alu_data.setPixelColor(i, 0);
+         alu.setPixelColor(i, 0);
        }
    }
-   alu_data.show();
+   alu.show();
 }
 
-void setClockSpeed()
+/*void setClockSpeed()
 {
   long newClock = enc.read();
   
@@ -857,4 +912,61 @@ void setClockSpeed()
     }
   }
   Serial.print(clockData);
+}*/
+
+void clearAll()
+{
+  int i;
+  for(i = 0; i < nLEDs; i++)
+  {
+    repTL.setPixelColor(i, 0);
+    spltMtoRTL.setPixelColor(i, 0);
+    repTR.setPixelColor(i,0);
+    spltBLtoMem.setPixelColor(i,0);
+    ARegtoMux.setPixelColor(i,0);
+    jl.setPixelColor(i,0);
+    mem.setPixelColor(i,0);
+    pc.setPixelColor(i,0);
+    mux.setPixelColor(i,0);
+    DReg.setPixelColor(i,0);
+    alu.setPixelColor(i,0);
+    ARegtoMem.setPixelColor(i,0);
+    spltBLtoA.setPixelColor(i,0);
+    spltMtoD.setPixelColor(i,0);
+    repBR.setPixelColor(i,0);
+  }
+  repTL.show();
+  spltMtoRTL.show();
+  repTR.show();
+  spltBLtoMem.show();
+  ARegtoMux.show();
+  jl.show();
+  mem.show();
+  pc.show();
+  mux.show();
+  DReg.show();
+  alu.show();
+  ARegtoMem.show();
+  spltBLtoA.show();
+  spltMtoD.show();
+  repBR.show();
+}
+
+void initLED()
+{
+    repTL.begin();
+    spltMtoRTL.begin();
+    repTR.begin();
+    spltBLtoMem.begin();
+    ARegtoMux.begin();
+    jl.begin();
+    mem.begin();
+    pc.begin();
+    mux.begin();
+    DReg.begin();
+    alu.begin();
+    ARegtoMem.begin();
+    spltBLtoA.begin();
+    spltMtoD.begin();
+    repBR.begin();
 }
