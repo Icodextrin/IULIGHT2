@@ -65,6 +65,9 @@ int memory[64][16];
 int DReg_val[16];
 int AReg_val[15];
 
+//Going to create a global variable for this instead of dealing with malloc/free later
+int outALU[16];
+
 Encoder enc(34, 33);
                            
 void setup()
@@ -105,8 +108,6 @@ void setup()
   //Now the file stuff is done
 }
 
-
-
 void loop()
 {
   int i;
@@ -134,6 +135,53 @@ void loop()
   instrIndex++;
 }
 
+//Function that takes in 16 length int array and negates all of the elements
+void negate16Bit(int *input)
+{
+   int i;
+   for(i = 0; i < 16; i++)
+   {
+      input[i] = !(input[i]);
+   }
+}
+
+//Handles binary addition associated with increment (stuff like carrying)
+void inc16Bit(int *input)
+{
+   if(input[15] == 0)
+   {
+      intput[15] = 1;
+      return;
+   }
+   //If our least significant bit isn't a zero we have to do some binary addition
+   else
+   {
+      //Start by zeroeing the least significant bit
+      input[15] = 0;
+      for(i = 14; i > 0; i--)
+      {
+         //Flip 1's to 0's until we reach a 0. Then flip that to a 1 and exit.
+         if(input[i] == 0)
+         {
+            input[i] = 1;
+            return;
+         }
+         //If the current bit isn't a zero, flip it from 1 to zero and move on
+         else
+         {
+            intput[i] = 0;
+         }//close else
+      }//close for
+   }//close else
+}//close inc16Bit
+
+//Handles twos compliment, to be used in ALU computations
+void twosComp16Bit(int *input)
+{
+   int i;
+   negate16Bit(input);
+   inc16Bit(input);
+}//close twosComp16Bit
 
 //Controls output LEDs for top middle splitter. Goes to D if D is in the destination bits given in our instruction
 //Takes in same data as our top right repeater, and also takes in an instruction which will tell us whether or not
@@ -483,44 +531,69 @@ void ALU_out(int M, int instruction[16])
    int c1 = instruction[4], c2 = instruction[5], c3 = instruction[6], c4 = instruction[7],
       c5 = instruction[8], c6 = instruction[9], a = instruction[3];
   
+   int i;
+   //Start by initializing outALU to all zeroes
+   for(i = 0; i < 16; i++)
+      outALU[i] = 0;
+   i = 0;
+  
    //If comp is 0
    if(c1 && !c2 && c3 && !c4 && c5 && !c6)
    {
-   
+      //Output is already set to 0, so if comp is zero just return
+      return;
    }
    //If comp is 1
    if(c1 && c2 && c3 && c4 && c5 && c6)
    {
-   
+      //Output set to zeroes, so if comp is 1 just return 16-bit binary for a 1
+      outALU[15] = 1;
+      return;
    }
    //If comp is -1
    if(c1 && c2 && c3 && !c4 && c5 && !c6)
    {
-      
+      //-1 in our two's compliment binary is just 16 1's
+      for(i = 0; i < 16; i++)
+         outALU[i] = 1;
+      return;
    }
    //If comp is D
    if(!c1 && !c2 && c3 && c4 && !c5 && !c6)
    {
-      
+      //If comp is D just set output equal to D and return it
+      for(i = 0; i < 16; i++)
+        outALU[i] = DReg_val[i];
+      return;
    }
    //If comp is A or M
    if(c1 && c2 && !c3 && !c4 && !c5 && !c6)
    {
-      //If we want A for our comp
+      //If we want A for our comp, just set output equal to AReg_val and return
       if(!a)
       {
-         
+         for(i = 0; i < 16; i++)
+           outALU[i] = AReg_val[i];
+         return;
       }
-      //If we want M for our comp
+      //If we want M for our comp, use argument M to load value in memory[M], set output equal to this,
+      //Then return
       if(a)
       {
-         
+         for(i = 0; i < 16; i++)
+           outALU[i] = memory[M][i];
+         return;
       }
    }
    //If we want !D
    if(!c1 && !c2 && c3 && c4 && !c5 && c6)
    {
-      
+      //Start by setting outALU equal to D
+      for(i = 0; i < 16; i++)
+        outALU[i] = DReg_val[i];
+      //Now negate each bit
+      negate16Bit(outALU);
+      return;
    }
    //If we want !A or !M
    if(c1 && c2 && !c3 && !c4 && !c5 && c6)
@@ -528,18 +601,32 @@ void ALU_out(int M, int instruction[16])
       //If we want !A for our comp
       if(!a)
       {
-         
+         //Start by setting outALU equal to A
+         for(i = 0; i < 16; i++)
+           outALU[i] = AReg_val[i];
+         //Negate each bit
+         negate16Bit(outALU);
+         return;
       }
       //If we want !M for our comp
       if(a)
       {
-         
+         //Start by setting outALU equal to M
+         for(i = 0; i < 16; i++)
+           outALU[i] = memory[M][i];
+         //Negate each bit
+         negate16Bit(outALU);
+         return;
       }
    }
    //If we want -D
    if(!c1 && !c2 && c3 && c4 && c5 && c6)
    {
-      
+      //Start by setting outALU equal to D
+      for(i = 0; i < 16; i++)
+        outALU[i] = DReg_val[i];
+      twosComp16Bit(outALU);
+      return;
    }
    //If we want -A or -M
    if(c1 && c2 && !c3 && !c4 && c5 && c6)
@@ -547,18 +634,31 @@ void ALU_out(int M, int instruction[16])
       //If we want -A
       if(!a)
       {
-         
+         //Start by setting outALU equal to A
+         for(i = 0; i < 16; i++)
+           outALU[i] = AReg_val[i];
+         twosComp16Bit(outALU);
+         return;
       }
       //If we want -M
       if(a)
       {
-         
+         //Start by setting outALU equal to M
+         for(i = 0; i < 16; i++)
+           outALU[i] = memory[M][i];
+         twosComp16Bit(outALU);
+         return;
       }
    }
    //If we want D+1
    if(!c1 && c2 && c3 && c4 && c5 && c6)
    {
-      
+      //Start by setting outALU equal to D
+      for(i = 0; i < 16; i++)
+        outALU[i] = DReg_val[i];
+      //Increment by 1
+      inc16Bit(outALU);
+      return;
    }
    //If we want A+1 or M+1
    if(c1 && c2 && !c3 && c4 && c5 && c6)
@@ -566,12 +666,20 @@ void ALU_out(int M, int instruction[16])
       //If we want A+1
       if(!a)
       {
-         
+         //Start by setting outALU equal to A
+         for(i = 0; i < 16; i++)
+           outALU[i] = AReg_val[i];
+         inc16Bit(outALU);
+         return;
       }
       //If we want M+1
       if(a)
       {
-         
+         //Start by setting outALU equal to M
+         for(i = 0; i < 16; i++)
+           outALU[i] = memory[M][i];
+         inc16Bit(outALU);
+         return;
       }
    }
    //If we want D-1
