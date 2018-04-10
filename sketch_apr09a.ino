@@ -433,7 +433,7 @@ void outMem()
 //This function controls the LEDs coming out of the multiplexer and into the ALU
 // compiler throws error mux_ declared void, changing to int to see if it fixes it
 // also I'm assuming this was supposed to be instructions
-int * mux_(instructions[16])
+void mux_(int instruction[16])
 {
    int i;
    //If 'a' mnemonic is 0, then output AReg value from mux into ALU
@@ -441,7 +441,7 @@ int * mux_(instructions[16])
    {
       for(i = 0; i < 15; i++)
       {
-         if(AReg[i] == 1)
+         if(AReg_val[i] == 1)
          {
             mux.setPixelColor(i, mux.Color(255, 0, 0));
          }
@@ -455,7 +455,7 @@ int * mux_(instructions[16])
       int memLoc = 0;
       for(i = 0; i < 7; i++)
       {
-         memLoc += (pow(2.0, i) * AReg[i]); 
+         memLoc += (pow(2.0, i) * AReg_val[i]); 
       }
       for(i = 0; i < 16; i++)
       {
@@ -483,4 +483,3 @@ void setClockSpeed()
   }
   Serial.print(clockData);
 }
-IUS
