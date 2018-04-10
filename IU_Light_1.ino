@@ -115,7 +115,7 @@ void loop()
   // need to test the outputs of the rot and make a function to map to a delay.
   //Once we've gone past the end of our instruction set, start over!
   if(instrIndex == 16)
-    instrIndex == 0;
+    instrIndex = 0;
   
   //If it's an a-instruction load the A register
   if(instructions[instrIndex][0] == 0)
@@ -130,7 +130,19 @@ void loop()
   //If it's a c-instruction
   if(instructions[instrIndex][0] == 1)
   {
-     //Do c-instruction stuff here
+     spltMtoD_(instructions[instrIndex]);
+     spltMtoRTL_(instructions[instrIndex]);
+     out_repTL();
+     out_AReg(AReg_val);
+     out_DReg();
+     out_repBR();
+     out_repTR();
+     spltBLtoMem_(instructions[instrIndex]);
+     spltBLtoA_(instructions[instrIndex]);
+     jumpLogicOut(instructions[instrIndex]);
+     outMem();
+     ALU_out(mux_(instructions[instrIndex]), instructions[instrIndex]);
+     
   }
   //After each loop we need to increment instrIndex so we can loop over the same instructions again
   instrIndex++;
@@ -204,7 +216,7 @@ void bitWiseAdd(int *out, int *in1, int *in2)
 //Controls output LEDs for top middle splitter. Goes to D if D is in the destination bits given in our instruction
 //Takes in same data as our top right repeater, and also takes in an instruction which will tell us whether or not
 //To send from splitter to D
-void spltMtoD_(int outALU[16], int instruction[16])
+void spltMtoD_(int instruction[16])
 {
   int i;
   if(instruction[11] == 1)
@@ -239,7 +251,7 @@ void spltMtoD_(int outALU[16], int instruction[16])
 //Controls output LEDs for top middle splitter. Goes to top left repeater if A or M are in the destination bits given 
 //in our instruction. Takes in same data as our top right repeater, and also takes in an instruction which 
 //will tell us whether or not to send from splitter to top left repeater
-void spltMtoRTL_(int outALU[16], int instruction[16])
+void spltMtoRTL_(int instruction[16])
 {
   int i;
   if(instruction[10] == 1 || instruction[12] == 1)
@@ -268,7 +280,7 @@ void spltMtoRTL_(int outALU[16], int instruction[16])
 }
 
 //Still working with same data as our other repeaters and top middle splitter, so we'll pass in the same thing
-void out_repTL(int outALU[16])
+void out_repTL()
 {
   int i;
    for(i = 0; i < 16; i++)
@@ -334,7 +346,7 @@ void out_DReg()
 }
 
 //Repeaters just spit back out whatever is put in
-void out_repBR(int outALU[16])
+void out_repBR()
 {
    int i;
    for(i = 0; i < 16; i++)
@@ -353,7 +365,7 @@ void out_repBR(int outALU[16])
 
 //Same as above but just with top right repeater. Even has the same data as the bottom right
 //so we'll give it the same input
-void out_repTR(int outALU[16])
+void out_repTR()
 {
    int i;
    for(i = 0; i < 16; i++)
@@ -373,7 +385,7 @@ void out_repTR(int outALU[16])
 //Decides whether or not to send data to memory from bottom left splitter. Still working with same ALU output data,
 //so we'll have the same input as our other repeaters and splitter. We'll see if M is in the destination
 //of our instruction, and that will decide whether or not to send data to memory
-void spltBLtoMem_(int outALU[16], int instruction[16])
+void spltBLtoMem_(int instruction[16])
 {
   int i, j, memLoc = 0;
   if(instruction[12] == 1)
@@ -424,7 +436,7 @@ void spltBLtoMem_(int outALU[16], int instruction[16])
 
 //Decides whether or not to send data from bottom left splitter to AReg. If it it sent, the values of AReg are overwritten
 //Still using same ALU output as several other functions.
-void spltBLtoA_(int outALU[16], int instruction[16])
+void spltBLtoA_(int instruction[16])
 {
   int i;
   if(instruction[10] == 1)
