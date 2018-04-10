@@ -1,8 +1,5 @@
 // This is the latest IU LIGHT code.
 #include <math.h>
-//#include <StaticThreadController.h>
-//#include <ThreadController.h>
-//#include <Thread.h>
 #include <assert.h>
 #include <LPD8806.h>
 #include <gfxfont.h>
@@ -31,9 +28,6 @@ int ARegtoMem_data = 23;
 int spltBLtoA_data = 22;
 int spltMtoD_data = 21;
 int repBR_data = 20;
-
-//Made this one 31 for now, don't know it's actual value so it's going to need to be set!!!
-// int ARegtoPC = 31; This doesn't exist, it's only PC
 
 LPD8806 repTL = LPD8806(nLEDs, repTL_data, clockPin);
 LPD8806 spltMtoRTL = LPD8806(nLEDs, spltMtoRTL_data, clockPin);
