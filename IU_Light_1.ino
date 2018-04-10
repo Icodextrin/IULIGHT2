@@ -155,9 +155,10 @@ void negate16Bit(int *input)
 //Handles binary addition associated with increment (stuff like carrying)
 void inc16Bit(int *input)
 {
+   int i;
    if(input[15] == 0)
    {
-      intput[15] = 1;
+      input[15] = 1;
       return;
    }
    //If our least significant bit isn't a zero we have to do some binary addition
@@ -176,7 +177,7 @@ void inc16Bit(int *input)
          //If the current bit isn't a zero, flip it from 1 to zero and move on
          else
          {
-            intput[i] = 0;
+            input[i] = 0;
          }//close else
       }//close for
    }//close else
@@ -193,7 +194,7 @@ void twosComp16Bit(int *input)
 //Does bitwise addition of two binary numbers from int arrays
 void bitWiseAdd(int *out, int *in1, int *in2)
 {
-   i, c = 0;
+   int i, c = 0;
    for(i = 0; i < 16; i++)
    {
       out[i] = 0;
@@ -756,7 +757,8 @@ void ALU_out(int M, int instruction[16])
          {
             temp[i] = AReg_val[i];
          }
-         bitWiseAdd(outALU, DReg_val, twosComp16Bit(temp));
+         twosComp16Bit(temp);
+         bitWiseAdd(outALU, DReg_val, temp);
          
       }
       //If we want D-M
@@ -767,7 +769,8 @@ void ALU_out(int M, int instruction[16])
          {
             temp[i] = memory[M][i];
          }
-         bitWiseAdd(outALU, DReg_val, twosComp16Bit(temp));
+         twosComp16Bit(temp);
+         bitWiseAdd(outALU, DReg_val, temp);
          
       }
    }
@@ -783,12 +786,14 @@ void ALU_out(int M, int instruction[16])
       //If we want A-D
       if(!a)
       {
-         bitWiseAdd(outALU, AReg_val, twosComp16Bit(temp));
+         twosComp16Bit(temp);
+         bitWiseAdd(outALU, AReg_val, temp);
       }
       //If we want M-D
       if(a)
       {
-         bitWiseAdd(outALU, memory[M], twosComp16Bit(temp));
+         twosComp16Bit(temp);
+         bitWiseAdd(outALU, memory[M], temp);
       }
    }
    //If we want D&A or D&M
