@@ -8,12 +8,19 @@
 #include <Encoder.h>
 #include <SD.h>
 
-int clockSpeed = 200;
+int clockSpeed = 500;
 
 int nLEDs = 16;
 int maxNum = pow(2, nLEDs);
 int clockPin = 23;
 long clockData = -999;
+
+//Encoder clock values init, max clock delay and min clock delay, as well as postions of encoder
+int clockMax = 1000;
+int clockMin = 5;
+int counter = 0;
+long newPosition = 0;
+long oldPosition = -999;
 
 int repTL_data = 2;
 int spltMtoRTL_data = 3;
@@ -96,7 +103,7 @@ int AReg_val[16];
 //Going to create a global variable for this instead of dealing with malloc/free later
 int outALU[16] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
 
-//Encoder enc(34, 33);
+Encoder enc(34, 33);
                            
 void setup()
 {
@@ -140,12 +147,11 @@ void setup()
 
 void loop()
 {
+  clockSpeed = clock_read(); // gets the clock speed from the encoder knob
   int j;
   for (j = 0; j < 32; j++)
   {
     int i, mem;
-    //setClockSpeed();
-    // need to test the outputs of the rot and make a function to map to a delay.
     //Once we've gone past the end of our instruction set, start over!
     if(instrIndex == 32)
       instrIndex = 0;
@@ -980,5 +986,22 @@ void initLED()
     spltBLtoA.begin();
     spltMtoD.begin();
     repBR.begin();
+}
+
+int clock_read(){
+  newPosition = enc.read();
+  if ((newPosition != oldPosition)) {
+    if(newPosition > oldPosition){
+      if(counter < clockMax){
+        counter++;
+      }
+    } else if(newPosition < oldPosition){
+        if(counter > clockMin){
+          counter--;
+        }
+    }
+    oldPosition = newPosition;
+  }
+  return counter;
 }
 
